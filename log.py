@@ -1,12 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-
-# Import required modules
-import logging
-
-
-# Last updated: 2021.03.27
 
 
 #####################################
@@ -15,9 +8,8 @@ import logging
 ##                                 ##
 #####################################
 
-"""
-This script sets up a log formatter.
-"""
+# Import required modules
+import logging
 
 
 ################################################################################################################
