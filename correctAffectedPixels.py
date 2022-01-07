@@ -14,12 +14,12 @@ from astropy.io import ascii
 import matplotlib.pyplot as plt
 from copy import deepcopy as dc
 from scipy.interpolate import interp1d
+from configparser import ConfigParser
 import os, log
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-def start(data_path, spectra_filenames, exclude_spectra=[], median_width=5., interpol_method='linear', \
-    interpol_width=25., interactive=True, output_spectra_filename_suffix='_p'):
+def start(configfile):
     """
     Flag cosmic ray affected or bad pixel region values and correct those affected (here, "affected pixels" is a 
     collective term for cosmic ray affected and bad pixels) regions by replacing median values or by generating 
@@ -35,20 +35,20 @@ def start(data_path, spectra_filenames, exclude_spectra=[], median_width=5., int
 
     INPUTS:
         - data_path - absolute path to the directory where the data are located; string
-        - spectra_filenames - filenames of the input spectra; list (of strings)
-    
-    OPTIONAL INPUTS:
-        - exclude_spectra - spectra numbers to be excluded from applying affected pixel corrections; list (of integers.  
-                            Default is an empty list.
-        - median_width - +/-"window" about the pixel to be replaced by a median value; int.  Default is 5.
+        - spectra_filenames - filenames of the input spectra; string (of strings separated by commas and no spaces).  
+                              These must be ASCII files containing 3 columns: pixels or wavelength, counts or flux, and 
+                              error in counts or flux.
+        - exclude_spectra - spectra numbers to be excluded from applying affected pixel corrections; string (of ints 
+                            separated by commas and no spaces).  Default is an empty string.
+        - median_width - +/-"window" about the pixel to be replaced by a median value; float.  Default is 5.
         - interpol_method - interpolation method for affected regions of more than 10 pixels; string.  Currently, the 
                             only option available is "linear".  Default is "linear".
-        - interpol_width - +/-"window" about the pixel region to be replaced by interpolated values; int.  Default is
+        - interpol_width - +/-"window" about the pixel region to be replaced by interpolated values; float.  Default is
                            25.
         - interactive - if True, spectra are displayed at all intermediate stages of the correction process for visual
                         inspection; boolean.  Default is "True".
-        - output_spectra_filename_suffix - suffix of the affected-pixel-corrected spectra filenames with pixels as the
-                                           x quantity; string.  Default is "_p".
+        - output_spectra_filename_suffix - suffix of the affected-pixel-corrected spectra filenames; string.  Default 
+                                           is "_p".
 
     OUTPUTS:
         - ASCII files containing columns: x quantity [pixels], y quantity (same units as input spectra), and error in y 
@@ -76,6 +76,27 @@ def start(data_path, spectra_filenames, exclude_spectra=[], median_width=5., int
     working_dir_path = os.getcwd()
     logger.info('Current working directory: %s', working_dir_path)
 
+    # Import config parameters
+    logger.info('Importing configuration parameters from %s.\n', configfile)
+    config = ConfigParser()
+    config.optionxform = str  ## make options case-sensitive
+    config.read(configfile)
+    
+    # Read correctAffectedPixels specific config
+    data_path = config.get('correctAffectedPixels','data_path')
+    spectra_filenames = config.get('correctAffectedPixels','spectra_filenames')
+    exclude_spectra = config.get('correctAffectedPixels','exclude_spectra')
+    if not exclude_spectra:
+        exclude_spectra = []  ## define an empty list
+    else:
+        exclude_spectra = [int(x) for x in exclude_spectra.split(',')]  ## convert comma-separated string of ints into 
+                                                                        ## a list of ints
+    median_width = config.getfloat('correctAffectedPixels','median_width')
+    interpol_method = config.get('correctAffectedPixels','interpol_method')
+    interpol_width = config.getfloat('correctAffectedPixels','interpol_width')
+    interactive = config.getboolean('correctAffectedPixels','interactive')
+    output_spectra_filename_suffix = config.get('correctAffectedPixels','output_spectra_filename_suffix')
+
 
     # Check if the path to the data directory is provided
     if not data_path:
@@ -92,6 +113,22 @@ def start(data_path, spectra_filenames, exclude_spectra=[], median_width=5., int
         logger.info('Absolute path to the data directory available.')
         logger.info('Data directory: %s', data_path)
 
+
+    # Check if spectra provided by the user
+    if not spectra_filenames:
+        logger.error('############################################################################################')
+        logger.error('############################################################################################')
+        logger.error('#                                                                                          #')
+        logger.error('#          ERROR in correctAffectedPixels: Spectra not detected.  Exiting script.          #')
+        logger.error('#                                                                                          #')
+        logger.error('############################################################################################')
+        logger.error('############################################################################################\n')      
+        raise SystemExit
+    else:
+        logger.info('Spectra detected.')
+        spectra_filenames = [x for x in spectra_filenames.split(',')]  ## convert comma-separated string of spectra 
+                                                                       ## filenames into a list of strings
+        logger.info('Spectra: %s', spectra_filenames)
 
     # Check if spectra available in the data directory
     spectra_not_available_ctr = 0
@@ -116,6 +153,82 @@ def start(data_path, spectra_filenames, exclude_spectra=[], median_width=5., int
     
     else:
         logger.info('All spectra avialable.')
+
+    
+    # Check if parameters for correcting affected pixels provided by the user; if not, set to the defaults if available
+    if not median_width:
+        logger.warning('##########################################################################################')
+        logger.warning('##########################################################################################')
+        logger.warning('#                                                                                        #')
+        logger.warning('#          WARNING in correctAffectedPixels: Width for calculating median value          #')
+        logger.warning('#                                    not detected.                                       #')
+        logger.warning('#                                                                                        #')
+        logger.warning('##########################################################################################')
+        logger.warning('##########################################################################################\n')
+        logger.info('Setting the width for calculating median value to the default "5".')
+        median_width = 5.
+    else:
+        logger.info('Width for calculating median value detected.')
+        logger.info('Width for calculating median value: %s', median_width)
+
+    if not interpol_method:
+        logger.warning('##########################################################################################')
+        logger.warning('##########################################################################################')
+        logger.warning('#                                                                                        #')
+        logger.warning('#          WARNING in correctAffectedPixels: Interpolation method not detected.          #')
+        logger.warning('#                                                                                        #')
+        logger.warning('##########################################################################################')
+        logger.warning('##########################################################################################\n')
+        logger.info('Setting the interpolation method to the default to the default "linear".')
+        interpol_method = 'linear'
+    
+    elif interpol_method == 'linear':
+        logger.info('Interpolation method detected.')
+        logger.info('Interpolation method: %s', interpol_method)
+    
+    else:
+        logger.warning('#############################################################################')
+        logger.warning('#############################################################################')
+        logger.warning('#                                                                           #')
+        logger.warning('#          WARNING in correctAffectedPixels: Invalid interpolation          #')
+        logger.warning('#                             method detected.                              #')
+        logger.warning('#                                                                           #')
+        logger.warning('#############################################################################')
+        logger.warning('#############################################################################\n')
+        logger.info('Setting the interpolation method to the default to the default "linear".')
+        interpol_method = 'linear'
+
+    if not interpol_width:
+        logger.warning('###############################################################################')
+        logger.warning('###############################################################################')
+        logger.warning('#                                                                             #')
+        logger.warning('#          WARNING in correctAffectedPixels: Width for interpolation          #')
+        logger.warning('#                                not detected.                                #')
+        logger.warning('#                                                                             #')
+        logger.warning('###############################################################################')
+        logger.warning('###############################################################################\n')
+        logger.info('Setting the width for interpolation to the default "25".')
+        interpol_width = 25.
+    else:
+        logger.info('Width for interpolation detected.')
+        logger.info('Width for interpolation: %s', interpol_width)
+    
+
+    # Check if output filename suffix provided by the user; if not, set to default if available
+    if not output_spectra_filename_suffix:
+        logger.warning('##############################################################################')
+        logger.warning('##############################################################################')
+        logger.warning('#                                                                            #')
+        logger.warning('#          WARNING in correctAffectedPixels: Output filename suffix          #')
+        logger.warning('#                               not detected.                                #')
+        logger.warning('#                                                                            #')
+        logger.warning('##############################################################################')
+        logger.warning('##############################################################################\n')
+        logger.info('Setting the output filename suffix to the default "_p".')
+        output_spectra_filename_suffix = '_p'
+    else:
+        logger.info('Output filename suffix detected.')
+        logger.info('Output filename suffix: %s', output_spectra_filename_suffix)
 
 
     #################################################################################### 
@@ -635,12 +748,5 @@ if __name__ == '__main__':
     # Set log file
     log.configure('correctAffectedPixels.log', filelevel='INFO', screenlevel='DEBUG')
 
-    start(data_path='/Users/viraja/GitHub/prepdataps/example_spectra', \
-        spectra_filenames=['spectra_info.dat'], \
-        exclude_spectra=[], \
-        median_width=5, \
-        interpol_method='linear', \
-        interpol_width=25, \
-        interactive=True, \
-        output_spectra_filename_suffix='_p')
+    start('prepdataps.cfg')
     

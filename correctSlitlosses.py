@@ -13,15 +13,14 @@ import statistics as stats
 from astropy.io import ascii
 from astropy.table import Table
 import matplotlib.pyplot as plt
-from utilities import error_add_sub, error_mul_div_var, error_mul_div_const
 from scipy.signal import cspline1d_eval
+from utilities import error_add_sub, error_mul_div_var, error_mul_div_const
+from configparser import ConfigParser
 import os, sys, log
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-def start(data_path, target_filenames, reference_filenames, interactive=True, ratios_method='one_to_one', \
-    spectral_bin_size=10., spline_order=1, output_spectra_filename_suffix='_l', \
-    slitloss_model_results_filename='slitloss_model_results.dat'):
+def start(configfile):
     """
     Correct for slitlosses - light from the target spectra lost due to narrow slits.  The amount of light lost can be 
     estimated with reference spectra taken with wide slits on the same night.  However, correcting for the slitlosses
@@ -43,11 +42,14 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, ra
 
     INPUTS:
         - data_path - absolute path to the directory where the data are located; string
-        - target_filenames - filenames of spectra to be corrected for slitlosses; list (of strings)
+        - target_filenames - filenames of spectra to be corrected for slitlosses; string (of strings separated by 
+                             commas and no spaces).  These must be ASCII files containing 3 columns: pixels or 
+                             wavelength, counts or flux, and error in counts or flux.
         - reference_filenames - filenames of spectra to be used as references for correcting target spectra; list (of 
-                                strings).  Number of filenames must match the number of target filenames.
-    
-    OPTIONAL INPUTS:
+                                strings separated by commas and no spaces).  These must be ASCII files containing 3 
+                                columns: pixels or wavelength, counts or flux, and error in counts or flux (with same 
+                                units as input curves).  Number of filenames must match with the number of target 
+                                filenames.
         - interactive - if True, spectra are displayed at all stages of the correction process for visual inspection; 
                         boolean.  Default is "True".
         - ratios_method - method for calculating spectral ratios; string.  Options are: "one_to_one" and "binned".  
@@ -65,15 +67,12 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, ra
                                             "slitloss_model_results.dat".
 
     OUTPUTS:
-        - ASCII files containing columns: x quantity (same units as input spectra), y quantity (same units as input 
-          spectra), and error in y quantity (same units as input spectra)
+        - ASCII files containing columns: x quantity, y quantity, and error in y quantity (all quantities in the same 
+          units as input spectra)
         - ASCII files containing model with columns: x quantity, model y quantity, data y quantity, and weight of data 
-          y quantity (again, all with same units as input spectra)
+          y quantity (again, all quantities in the same units as input spectra)
         - ASCII file containing results of the spline model fit to spectral ratios in columns: model filename, 
           root-mean-squared (RMS), and reduced chi-squared statistic
-    
-    NOTES:
-        1. Input target and reference spectra must have the same units.
     """
     logger = log.getLogger('correctSlitlosses.start')
 
@@ -109,6 +108,24 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, ra
     logger.info('Current working directory: %s', working_dir_path)
 
 
+    # Import config parameters
+    logger.info('Importing configuration parameters from %s.\n', configfile)
+    config = ConfigParser()
+    config.optionxform = str  ## make options case-sensitive
+    config.read(configfile)
+    
+    # Read correctSlitlosses specific config
+    data_path = config.get('correctSlitlosses','data_path')
+    target_filenames = config.get('correctSlitlosses','target_filenames')
+    reference_filenames = config.get('correctSlitlosses','reference_filenames')
+    interactive = config.getboolean('correctSlitlosses','interactive')
+    ratios_method = config.get('correctSlitlosses','ratios_method')
+    spectral_bin_size = config.getfloat('correctSlitlosses','spectral_bin_size')
+    spline_order = config.getint('correctSlitlosses','spline_order')
+    output_spectra_filename_suffix = config.get('correctSlitlosses','output_spectra_filename_suffix')
+    slitloss_model_results_filename = config.get('correctSlitlosses','slitloss_model_results_filename')
+
+
     # Check if the path to the data directory is provided
     if not data_path:
         logger.error('#########################################################################################')
@@ -123,6 +140,42 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, ra
     else:
         logger.info('Absolute path to the data directory available.')
         logger.info('Data directory: %s', data_path)
+
+    
+    # Check if spectra provided by the user
+    # Target spectra
+    if not target_filenames:
+        logger.error('##############################################################################')
+        logger.error('##############################################################################')
+        logger.error('#                                                                            #')
+        logger.error('#          ERROR in correctSlitlosses: Target spectra not detected.          #')
+        logger.error('#                              Exiting script.                               #')
+        logger.error('#                                                                            #')
+        logger.error('##############################################################################')
+        logger.error('##############################################################################\n')      
+        raise SystemExit
+    else:
+        logger.info('Target spectra detected.')
+        target_filenames = [x for x in target_filenames.split(',')]  ## convert comma-separated string of strings into
+                                                                     ## a list of strings
+        logger.info('Target spectra: %s', target_filenames)
+    
+    # Reference spectra
+    if not reference_filenames:
+        logger.error('#################################################################################')
+        logger.error('#################################################################################')
+        logger.error('#                                                                               #')
+        logger.error('#          ERROR in correctSlitlosses: Reference spectra not detected.          #')
+        logger.error('#                               Exiting script.                                 #')
+        logger.error('#                                                                               #')
+        logger.error('#################################################################################')
+        logger.error('#################################################################################\n')      
+        raise SystemExit
+    else:
+        logger.info('Reference spectra detected.')
+        target_filenames = [x for x in reference_filenames.split(',')]  ## convert comma-separated string of strings
+                                                                        ## into a list of strings
+        logger.info('Reference spectra: %s', reference_filenames)
 
 
     # Check if target and reference spectra available in the data directory
@@ -197,7 +250,7 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, ra
         logger.warning('#                                                                                        #')
         logger.warning('##########################################################################################')
         logger.warning('##########################################################################################\n')
-        logger.info('Setting the size of the spectral bins to the default "".')
+        logger.info('Setting the size of the spectral bins to an empty string.')
         spectral_bin_size = ''
 
     elif (ratios_method == 'binned') and (not spectral_bin_size):
@@ -217,6 +270,55 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, ra
     
     else:
         pass
+
+    
+    # Check if order of spline function provided by the user; if not, set to default if available
+    if not spline_order:
+        logger.warning('################################################################################')
+        logger.warning('################################################################################')
+        logger.warning('#                                                                              #')
+        logger.warning('#          WARNING in correctSlitlosses: Order of the spline function          #')
+        logger.warning('#                                not detected.                                 #')
+        logger.warning('#                                                                              #')
+        logger.warning('################################################################################')
+        logger.warning('################################################################################\n')
+        logger.info('Setting the order of the spline function to the default "1".')
+        spline_order = 1
+    else:
+        logger.info('Order of the spline function detected.')
+        logger.info('Order of the spline function: %s', spline_order)
+
+    
+    # Check if output filename suffix provided by the user; if not, set to default if available
+    if not output_spectra_filename_suffix:
+        logger.warning('########################################################################################')
+        logger.warning('########################################################################################')
+        logger.warning('#                                                                                      #')
+        logger.warning('#          WARNING in correctSlitlosses: Output filename suffix not detected.          #')
+        logger.warning('#                                                                                      #')
+        logger.warning('########################################################################################')
+        logger.warning('########################################################################################\n')
+        logger.info('Setting the output filename suffix to the default "_l".')
+        output_spectra_filename_suffix = '_l'
+    else:
+        logger.info('Output filename suffix detected.')
+        logger.info('Output filename suffix: %s', output_spectra_filename_suffix)
+
+    
+    # Check if results filename provided by the user; if not, set to default if available
+    if not slitloss_model_results_filename:
+        logger.warning('##################################################################################')
+        logger.warning('##################################################################################')
+        logger.warning('#                                                                                #')
+        logger.warning('#          WARNING in correctSlitlosses: Results filename not detected.          #')
+        logger.warning('#                                                                                #')
+        logger.warning('##################################################################################')
+        logger.warning('##################################################################################\n')
+        logger.info('Setting the results filename to the default "slitloss_model_results.dat".')
+        slitloss_model_results_filename = 'slitloss_model_results.dat'
+    else:
+        logger.info('Results filename detected.')
+        logger.info('Results filename: %s', slitloss_model_results_filename)
     
     
     # Define required variables
@@ -612,42 +714,4 @@ if __name__ == '__main__':
     # Set log file
     log.configure('correctSlitlosses.log', filelevel='INFO', screenlevel='DEBUG')
 
-    start(data_path='/Users/viraja/GitHub/prepdataps/example_spectra', \
-        target_filenames=['strcgN20190206S0177tgt_p_s.dat', 'strcgN20190206S0178tgt_p_s.dat', \
-            'strcgN20190226S0124tgt_p_s.dat', 'strcgN20190226S0125tgt_p_s.dat', \
-            'strcgN20190303S0108tgt_p_s.dat', 'strcgN20190303S0109tgt_p_s.dat', \
-            'strcgN20190309S0301tgt_p_s.dat', 'strcgN20190309S0302tgt_p_s.dat', \
-            'strcgN20190312S0172tgt_p_s.dat', 'strcgN20190312S0173tgt_p_s.dat', \
-            'strcgN20190315S0288tgt_p_s.dat', 'strcgN20190315S0289tgt_p_s.dat', \
-            'strcgN20190316S0250tgt_p_s.dat', 'strcgN20190316S0251tgt_p_s.dat', \
-            'strcgN20190323S0252tgt_p_s.dat', 'strcgN20190323S0253tgt_p_s.dat', \
-            'strcgN20190326S0022tgt_p_s.dat', 'strcgN20190326S0023tgt_p_s.dat', \
-            'strcgN20190327S0033tgt_p_s.dat', 'strcgN20190327S0034tgt_p_s.dat', \
-            'strcgN20190331S0020tgt_p_s.dat', 'strcgN20190331S0021tgt_p_s.dat', \
-            'strcgN20190403S0115tgt_p_s.dat', 'strcgN20190403S0116tgt_p_s.dat', \
-            'strcgN20190404S0145tgt_p_s.dat', 'strcgN20190404S0146tgt_p_s.dat', \
-            'strcgN20190405S0032tgt_p_s.dat', 'strcgN20190405S0033tgt_p_s.dat', \
-            'strcgN20190407S0113tgt_p_s.dat', \
-            'strcgN20190408S0045tgt_p_s.dat', 'strcgN20190408S0046tgt_p_s.dat', \
-            'strcgN20190409S0241tgt_p_s.dat', 'strcgN20190409S0242tgt_p_s.dat', \
-            'strcgN20190425S0093tgt_p_s.dat', 'strcgN20190425S0094tgt_p_s.dat', \
-            'strcgN20190427S0197tgt_p_s.dat', 'strcgN20190427S0198tgt_p_s.dat', \
-            'strcgN20190501S0074tgt_p_s.dat', 'strcgN20190501S0075tgt_p_s.dat', \
-            'strcgN20190502S0114tgt_p_s.dat', 'strcgN20190502S0115tgt_p_s.dat', \
-            'strcgN20190507S0086tgt_p_s.dat', 'strcgN20190507S0087tgt_p_s.dat', \
-            'strcgN20190508S0056tgt_p_s.dat', \
-            'strcgN20190509S0076tgt_p_s.dat', 'strcgN20190509S0077tgt_p_s.dat', \
-            'strcgN20190512S0047tgt_p_s.dat', 'strcgN20190512S0048tgt_p_s.dat', \
-            'strcgN20190513S0084tgt_p_s.dat', 'strcgN20190513S0085tgt_p_s.dat', \
-            'strcgN20190524S0049tgt_p_s.dat', 'strcgN20190524S0050tgt_p_s.dat', \
-            'strcgN20190526S0029tgt_p_s.dat', 'strcgN20190526S0030tgt_p_s.dat', \
-            'strcgN20190528S0037tgt_p_s.dat', 'strcgN20190528S0038tgt_p_s.dat', \
-            'strcgN20190601S0124tgt_p_s.dat', 'strcgN20190601S0125tgt_p_s.dat', \
-            'strcgN20190329S0086tgt_p_s.dat'], \
-        reference_filenames=['mean_error_tgt_p_s_500.dat' for n in range(59)], \
-        interactive=True, \
-        ratios_method='one_to_one', \
-        spectral_bin_size=10., \
-        spline_order=2, \
-        output_spectra_filename_suffix='_l', \
-        slitloss_model_results_filename='slitloss_model_results_tgt_p_s.dat')
+    start('prepdataps.cfg')

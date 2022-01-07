@@ -14,12 +14,12 @@ from astropy.io import ascii
 import matplotlib.pyplot as plt
 from copy import deepcopy as dc
 from scipy.interpolate import splrep, splev
+from configparser import ConfigParser
 import os, log
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-def start(data_path, target_filenames, reference_filenames, interactive=True, windows_x=[], spline_order=3, \
-    continuum_points=[], continuum_window_width=10, recovered_curve_filenames=[]):
+def start(configfile):
     """
     Recover the shape of the target curves based on the shape of the reference curves.  The curves should be 
     one-dimensional (1-D), e.g., 1-D spectra.  A spline function is used to approximate shapes of the reference curves
@@ -32,35 +32,35 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, wi
 
     INPUTS:
         - data_path - absolute path to the directory where the data are located; string
-        - target_filenames - filenames of the target curves to be recovered; list (of strings)
-        - reference_filenames - filenames of reference curves; list (of strings).  Number of filenames must match with 
-                                the number of target filenames.
-    
-    OPTIONAL INPUTS:
+        - target_filenames - filenames of the curves to be recovered; string (of strings separated by commas and no
+                              spaces).  These must be ASCII files containing 3 columns: pixels or wavelength, counts or
+                              flux, and error in counts or flux.
+        - reference_filenames - filenames of reference curves; string (of strings separated by commas and no spaces).  
+                                These must be ASCII files containing 3 columns: pixels or wavelength, counts or flux, 
+                                and error in counts or flux (with same units as input curves).  Number of filenames 
+                                must match with the number of target filenames.
+        - windows_x_packed - starting and ending x quantities of the curve windows to be recovered in target spectra; 
+                             string (of strings of comma-separated starting and ending values that are separated by a 
+                             colon, separated by vertical lines "|")
+        - continuum_points - x quantities of the continuum free of any absorption or emission (same units as input x 
+                             quantity); string (of floats separated by commas and no spaces).  If continuum points not 
+                             provided, the error in the recovery windows of the reference curves are used for 
+                             generating simulated data for recovery.
         - interactive - if True, spectra are displayed at all intermediate stages of the recovery process for visual 
                         inspection and the order of the split fit can be set by the user; boolean.  Default is "True".
-        - windows_x - starting and ending x quantities of the curve windows to be recovered in target spectra (same 
-                      units as input curves); list of lists of strings (of comma-separated starting and ending values 
-                      separated by a colon).  Default is an empty list.
         - spline_order - order of the spline function to approximate the reference curve shape; int.  Default is 3.
-        - continuum_points - x values of the continuum free of any absorption or emission (same units as input x 
-                             quantity); string (of floats separated by commas and no spaces).  Default is an empty 
-                             list.
         - continuum_window_width - +/-"window" about the continuum point to be used to calculate the median continuum 
                                    error (same units as the input x quantity); float.  Default is 10.
-        - recovered_curve_filenames - filenames of the recovered curves; list of (strings).  If a list is provided, the
-                                      number of filenames must match with the number of target filenames.  If list is 
-                                      empty, the target filenames are used to save the recovered curve files are used.  
-                                      Default is an empty list.
-
+        - recovered_curve_filenames - filenames of the recovered curves; string (of strings).  If a list is provided, 
+                                      the number of filenames must match with the number of target filenames.  If list 
+                                      is empty or if the number of filenames do not match with the number of target 
+                                      filenames, the target filenames are used to save the recovered curve files.  
+                                      Default is an empty string.
 
     OUTPUTS:
-        - ASCII files containing columns: x quantity (same units as input curves), y quantity (same units as input 
-          curves), and error in y quantity (same units as input curves)
-        - Updates or saves an ASCII file containing flag status of data points witth columns: pixel number and flag
-    
-    NOTES:
-        1. Input target and reference curves must have the same units.
+        - ASCII files containing columns: x quantity, y quantity, and error in y quantity (all quantities in the same 
+          units as input spectra)
+        - Updates or saves an ASCII file containing flag status of data points with columns: pixel number and flag
     """
     logger = log.getLogger('recoverCurveShapes.start')
 
@@ -84,6 +84,29 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, wi
     logger.info('Current working directory: %s', working_dir_path)
 
 
+    # Import config parameters
+    logger.info('Importing configuration parameters from %s.\n', configfile)
+    config = ConfigParser()
+    config.optionxform = str  ## make options case-sensitive
+    config.read(configfile)
+
+    # Read recoverCurveShapes specific config
+    data_path = config.get('recoverCurveShapes','data_path')
+    target_filenames = config.get('recoverCurveShapes','target_filenames')
+    reference_filenames = config.get('recoverCurveShapes','reference_filenames')
+    windows_x_packed = config.get('recoverCurveShapes','windows_x_packed')
+    interactive = config.getboolean('recoverCurveShapes','interactive')
+    spline_order = config.getint('recoverCurveShapes','spline_order')
+    continuum_points = config.get('recoverCurveShapes','continuum_points')
+    continuum_window_width = config.getfloat('recoverCurveShapes','continuum_window_width')
+    recovered_curve_filenames = config.get('recoverCurveShapes','recovered_curve_filenames')
+    if not recovered_curve_filenames:
+        recovered_curve_filenames = []
+    else:
+        recovered_curve_filenames = [x for x in recovered_curve_filenames.split(',')]  ## convert comma-separated 
+                                                                      ## string of strings into a list of strings
+
+
     # Check if the path to the data directory is provided
     if not data_path:
         logger.error('##########################################################################################')
@@ -100,6 +123,42 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, wi
         logger.info('Data directory: %s', data_path)
 
 
+    # Check if curves provided by the user
+    # Target curves
+    if not target_filenames:
+        logger.error('##############################################################################')
+        logger.error('##############################################################################')
+        logger.error('#                                                                            #')
+        logger.error('#          ERROR in recoverCurveShapes: Target curves not detected.          #')
+        logger.error('#                              Exiting script.                               #')
+        logger.error('#                                                                            #')
+        logger.error('##############################################################################')
+        logger.error('##############################################################################\n')      
+        raise SystemExit
+    else:
+        logger.info('Target curves detected.')
+        target_filenames = [x for x in target_filenames.split(',')]  ## convert comma-separated string of strings into
+                                                                     ## a list of strings
+        logger.info('Target curves: %s', target_filenames)
+    
+    # Reference curves
+    if not reference_filenames:
+        logger.error('#################################################################################')
+        logger.error('#################################################################################')
+        logger.error('#                                                                               #')
+        logger.error('#          ERROR in recoverCurveShapes: Reference curves not detected.          #')
+        logger.error('#                               Exiting script.                                 #')
+        logger.error('#                                                                               #')
+        logger.error('#################################################################################')
+        logger.error('#################################################################################\n')      
+        raise SystemExit
+    else:
+        logger.info('Reference curves detected.')
+        target_filenames = [x for x in reference_filenames.split(',')]  ## convert comma-separated string of strings
+                                                                        ## into a list of strings
+        logger.info('Reference curves: %s', reference_filenames)
+    
+    
     # Check if target and reference curves available in the data directory
     # Target curves
     curves_not_available_ctr = 0
@@ -133,68 +192,130 @@ def start(data_path, target_filenames, reference_filenames, interactive=True, wi
             curves_not_available_ctr += 1
     
     if curves_not_available_ctr > 0:
-        logger.error('##########################################################################################')
-        logger.error('##########################################################################################')
-        logger.error('#                                                                                        #')
-        logger.error('#          ERROR in correctSlitlosses: %s reference curves not available in the          #', \
+        logger.error('###########################################################################################')
+        logger.error('###########################################################################################')
+        logger.error('#                                                                                         #')
+        logger.error('#          ERROR in recoverCurveShapes: %s reference curves not available in the          #', \
             curves_not_available_ctr)
-        logger.error('#                           data directory.  Exiting script.                             #')
-        logger.error('#                                                                                        #')
-        logger.error('##########################################################################################')
-        logger.error('##########################################################################################\n')
+        logger.error('#                            data directory.  Exiting script.                             #')
+        logger.error('#                                                                                         #')
+        logger.error('###########################################################################################')
+        logger.error('###########################################################################################\n')
         raise SystemExit
     
     else:
         logger.info('All reference curves avialable.')
     
 
+    # Check if curve windows to recover provided by the user
+    if not windows_x_packed:
+        logger.error('#########################################################################################')
+        logger.error('#########################################################################################')
+        logger.error('#                                                                                       #')
+        logger.error('#          ERROR in recoverCurveShapes: Curve windows to recover not detected.          #')
+        logger.error('#                                  Exiting script.                                      #')
+        logger.error('#                                                                                       #')
+        logger.error('#########################################################################################')
+        logger.error('#########################################################################################\n')
+        raise SystemExit
+    else:
+        windows_x_packed = [x for x in windows_x_packed.split('|')]  ## convert vertical line-separated string of 
+                                                                     ## strings into a list of strings
+        windows_x = []  ## stores curves windows to recover
+        for windows in windows_x:
+            windows_x.append(windows.split(','))  ## convert the list of comma-separated string of strings into a list
+                                                  ## of lists of strings
+
     # Check if number of lists of curve windows to recover equal to the number of target curves
     if len(windows_x) > len(target_filenames):
-        logger.error('########################################################################################')
-        logger.error('########################################################################################')
-        logger.error('#                                                                                      #')
-        logger.error('#          ERROR in correctSlitlosses: Lists of curve windows to recover more          #')
-        logger.error('#             than the number of target curves provided.  Exiting script.              #')
-        logger.error('#                                                                                      #')
-        logger.error('########################################################################################')
-        logger.error('########################################################################################\n')
+        logger.error('#########################################################################################')
+        logger.error('#########################################################################################')
+        logger.error('#                                                                                       #')
+        logger.error('#          ERROR in recoverCurveShapes: Lists of curve windows to recover more          #')
+        logger.error('#              than the number of target curves provided.  Exiting script.              #')
+        logger.error('#                                                                                       #')
+        logger.error('#########################################################################################')
+        logger.error('#########################################################################################\n')
         raise SystemExit
     
     elif len(windows_x) < len(target_filenames):
-        logger.error('########################################################################################')
-        logger.error('########################################################################################')
-        logger.error('#                                                                                      #')
-        logger.error('#          ERROR in correctSlitlosses: Lists of curve windows to recover less          #')
-        logger.error('#             than the number of target curves provided.  Exiting script.              #')
-        logger.error('#                                                                                      #')
-        logger.error('########################################################################################')
-        logger.error('########################################################################################\n')
+        logger.error('#########################################################################################')
+        logger.error('#########################################################################################')
+        logger.error('#                                                                                       #')
+        logger.error('#          ERROR in recoverCurveShapes: Lists of curve windows to recover less          #')
+        logger.error('#              than the number of target curves provided.  Exiting script.              #')
+        logger.error('#                                                                                       #')
+        logger.error('#########################################################################################')
+        logger.error('#########################################################################################\n')
         raise SystemExit
     
     else:
         logger.info('Number of lists of curve windows to recover is equal to the number of target curves.')
     
 
-    # Check if continuum points to calculate median error for target provided
-    if continuum_points:
-        logger.info('Continuum points available.')
+    # Check if recovery parameters provided by the user; if not, set to the defaults if available
+    if not spline_order:
+        logger.warning('#################################################################################')
+        logger.warning('#################################################################################')
+        logger.warning('#                                                                               #')
+        logger.warning('#          WARNING in recoverCurveShapes: Order of the spline function          #')
+        logger.warning('#                                 not detected.                                 #')
+        logger.warning('#                                                                               #')
+        logger.warning('#################################################################################')
+        logger.warning('#################################################################################\n')
+        logger.info('Setting the order of the spline function to the default "3".')
+        spline_order = 3
     else:
-        logger.info('Continuum points not available.')
+        logger.info('Order of the spline function detected.')
+        logger.info('Order of the spline function: %s', spline_order)
+        
+    if not continuum_points:
+        logger.info('Continuum points not detected.')
+    else:
+        logger.info('Continuum points detected.')
+    
+    if not continuum_window_width:
+        logger.warning('##################################################################################')
+        logger.warning('##################################################################################')
+        logger.warning('#                                                                                #')
+        logger.warning('#          WARNING in recoverCurveShapes: Width of the continuum window          #')
+        logger.warning('#                                 not detected.                                  #')
+        logger.warning('#                                                                                #')
+        logger.warning('##################################################################################')
+        logger.warning('##################################################################################\n')
+        logger.info('Setting the width of the continuum window to the default "3".')
+        continuum_window_width = 10.
+    else:
+        logger.info('Width of the continuum window detected.')
+        logger.info('Width of the continuum window: %s', continuum_window_width)
 
 
     # Check if recovered curve filenames provided
     if not recovered_curve_filenames:
-        logger.warning('#########################################################################################')
-        logger.warning('#########################################################################################')
-        logger.warning('#                                                                                       #')
-        logger.warning('#          WARNING in correctSlitlosses: Output filenames for recovered curves          #')
-        logger.warning('#                                   not available.                                      #')
-        logger.warning('#                                                                                       #')
-        logger.warning('#########################################################################################')
-        logger.warning('#########################################################################################\n')
-        logger.info('Using the input target curve filenames as the output target curve filenames.')
+        logger.warning('#######################################3##################################################')
+        logger.warning('##########################################################################################')
+        logger.warning('#                                                                                        #')
+        logger.warning('#          WARNING in recoverCurveShapes: Output filenames for recovered curves          #')
+        logger.warning('#                                    not detected.                                       #')
+        logger.warning('#                                                                                        #')
+        logger.warning('##########################################################################################')
+        logger.warning('##########################################################################################\n')
+        logger.info('Using the input target curve filenames as the output target filenames.')
+    
+    elif len(recovered_curve_filenames) != len(target_filenames):
+        logger.warning('##########################################################################################')
+        logger.warning('##########################################################################################')
+        logger.warning('#                                                                                        #')
+        logger.warning('#          WARNING in recoverCurveShapes: Number of output filenames and number          #')
+        logger.warning('#                           of target filenames do not match.                            #')
+        logger.warning('#                                                                                        #')
+        logger.warning('##########################################################################################')
+        logger.warning('##########################################################################################\n')
+        logger.info('Using the input target curve filenames as the output target filenames.')
+        recovered_curve_filenames = []
+    
     else:
-        logger.info('Output filenames available.')
+        logger.info('Output filenames detected, and number of output filenames and number of target filenames match.')
     
 
     ###################################################################### 
@@ -537,12 +658,4 @@ if __name__ == '__main__':
     # Set log file
     log.configure('recoverCurveShapes.log', filelevel='INFO', screenlevel='DEBUG')
 
-    start(data_path='/Users/viraja/GitHub/prepdataps/example_spectra', \
-        target_filenames=['strcgN20190329S0085std_p_s_v1.dat'], \
-        reference_filenames=['mean_error_std_p_s_500.dat'], \
-        interactive=True, \
-        windows_x = [['2001:2850']], \
-        spline_order=3, \
-        continuum_points=[2590, 3940, 4550], \
-        continuum_window_width=10., \
-        recovered_curve_filenames=['strcgN20190329S0085std_p_s.dat'])
+    start('prepdataps.cfg')
