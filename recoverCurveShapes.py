@@ -39,9 +39,9 @@ def start(configfile):
                                 These must be ASCII files containing 3 columns: pixels or wavelength, counts or flux, 
                                 and error in counts or flux (with same units as input curves).  Number of filenames 
                                 must match with the number of target filenames.
-        - windows_x_packed - starting and ending x quantities of the curve windows to be recovered in target spectra; 
-                             string (of strings of comma-separated starting and ending values that are separated by a 
-                             colon, separated by vertical lines "|")
+        - windows_x_packed - starting and ending x quantities of the curve windows to be recovered in target spectra 
+                             (same units as input x quantity); string (of strings of comma-separated starting and 
+                             ending values that are separated by a colon, separated by vertical lines "|").  
         - continuum_points - x quantities of the continuum free of any absorption or emission (same units as input x 
                              quantity); string (of floats separated by commas and no spaces).  If continuum points not 
                              provided, the error in the recovery windows of the reference curves are used for 
@@ -104,10 +104,10 @@ def start(configfile):
         recovered_curve_filenames = []
     else:
         recovered_curve_filenames = [x for x in recovered_curve_filenames.split(',')]  ## convert comma-separated 
-                                                                      ## string of strings into a list of strings
+                                                                    ## string of filenames into a list of strings
 
 
-    # Check if the path to the data directory is provided
+    # Check if the path to the data directory provided by the user
     if not data_path:
         logger.error('##########################################################################################')
         logger.error('##########################################################################################')
@@ -137,8 +137,8 @@ def start(configfile):
         raise SystemExit
     else:
         logger.info('Target curves detected.')
-        target_filenames = [x for x in target_filenames.split(',')]  ## convert comma-separated string of strings into
-                                                                     ## a list of strings
+        target_filenames = [x for x in target_filenames.split(',')]  ## convert comma-separated string of filenames
+                                                                     ## into a list of strings
         logger.info('Target curves: %s', target_filenames)
     
     # Reference curves
@@ -154,7 +154,7 @@ def start(configfile):
         raise SystemExit
     else:
         logger.info('Reference curves detected.')
-        target_filenames = [x for x in reference_filenames.split(',')]  ## convert comma-separated string of strings
+        target_filenames = [x for x in reference_filenames.split(',')]  ## convert comma-separated string of filenames
                                                                         ## into a list of strings
         logger.info('Reference curves: %s', reference_filenames)
     
@@ -220,40 +220,45 @@ def start(configfile):
         raise SystemExit
     else:
         windows_x_packed = [x for x in windows_x_packed.split('|')]  ## convert vertical line-separated string of 
-                                                                     ## strings into a list of strings
+                                                                     ## comma-separated curve-window strings into
+                                                                     ## a list of strings
         windows_x = []  ## stores curves windows to recover
         for windows in windows_x:
-            windows_x.append(windows.split(','))  ## convert the list of comma-separated string of strings into a list
-                                                  ## of lists of strings
+            windows_x.append(windows.split(','))  ## convert the list of comma-separated string of curve windows into a
+                                                  ## list of lists of strings
 
-    # Check if number of lists of curve windows to recover equal to the number of target curves
+    # Check if number of lists of curve windows to recover match with the the number of target curves
     if len(windows_x) > len(target_filenames):
-        logger.error('#########################################################################################')
-        logger.error('#########################################################################################')
-        logger.error('#                                                                                       #')
-        logger.error('#          ERROR in recoverCurveShapes: Lists of curve windows to recover more          #')
-        logger.error('#              than the number of target curves provided.  Exiting script.              #')
-        logger.error('#                                                                                       #')
-        logger.error('#########################################################################################')
-        logger.error('#########################################################################################\n')
+        difference = len(windows_x) - len(target_filenames)
+        logger.error('############################################################################################')
+        logger.error('############################################################################################')
+        logger.error('#                                                                                          #')
+        logger.error('#          ERROR in recoverCurveShapes: %s more lists of curve windows to recover          #', \
+            difference)
+        logger.error('#               than the number of target curves provided.  Exiting script.                #')
+        logger.error('#                                                                                          #')
+        logger.error('############################################################################################')
+        logger.error('############################################################################################\n')
         raise SystemExit
     
     elif len(windows_x) < len(target_filenames):
-        logger.error('#########################################################################################')
-        logger.error('#########################################################################################')
-        logger.error('#                                                                                       #')
-        logger.error('#          ERROR in recoverCurveShapes: Lists of curve windows to recover less          #')
-        logger.error('#              than the number of target curves provided.  Exiting script.              #')
-        logger.error('#                                                                                       #')
-        logger.error('#########################################################################################')
-        logger.error('#########################################################################################\n')
+        difference = len(target_filenames) - len(windows_x)
+        logger.error('############################################################################################')
+        logger.error('############################################################################################')
+        logger.error('#                                                                                          #')
+        logger.error('#          ERROR in recoverCurveShapes: %s less lists of curve windows to recover          #', \
+            difference)
+        logger.error('#               than the number of target curves provided.  Exiting script.                #')
+        logger.error('#                                                                                          #')
+        logger.error('############################################################################################')
+        logger.error('############################################################################################\n')
         raise SystemExit
     
     else:
-        logger.info('Number of lists of curve windows to recover is equal to the number of target curves.')
+        logger.info('Number of lists of curve windows to recover match with the number of target curves.')
     
 
-    # Check if recovery parameters provided by the user; if not, set to the defaults if available
+    # Check if recovery parameters provided by the user
     if not spline_order:
         logger.warning('#################################################################################')
         logger.warning('#################################################################################')
@@ -273,6 +278,9 @@ def start(configfile):
         logger.info('Continuum points not detected.')
     else:
         logger.info('Continuum points detected.')
+        continuum_points = [float(x) for x in continuum_points.split(',')]  ## convert comma-separated string of
+                                                                 ## continuum x quantities into a list of floats
+        logger.info('Continuum points: %s', continuum_points)
     
     if not continuum_window_width:
         logger.warning('##################################################################################')
@@ -283,16 +291,16 @@ def start(configfile):
         logger.warning('#                                                                                #')
         logger.warning('##################################################################################')
         logger.warning('##################################################################################\n')
-        logger.info('Setting the width of the continuum window to the default "3".')
+        logger.info('Setting the width of the continuum window to the default "10".')
         continuum_window_width = 10.
     else:
         logger.info('Width of the continuum window detected.')
         logger.info('Width of the continuum window: %s', continuum_window_width)
 
 
-    # Check if recovered curve filenames provided
+    # Check if recovered curve filenames provided by the user
     if not recovered_curve_filenames:
-        logger.warning('#######################################3##################################################')
+        logger.warning('##########################################################################################')
         logger.warning('##########################################################################################')
         logger.warning('#                                                                                        #')
         logger.warning('#          WARNING in recoverCurveShapes: Output filenames for recovered curves          #')
@@ -300,22 +308,24 @@ def start(configfile):
         logger.warning('#                                                                                        #')
         logger.warning('##########################################################################################')
         logger.warning('##########################################################################################\n')
-        logger.info('Using the input target curve filenames as the output target filenames.')
+        logger.info('Using the input target curve filenames as the output target curve filenames.')
     
     elif len(recovered_curve_filenames) != len(target_filenames):
-        logger.warning('##########################################################################################')
-        logger.warning('##########################################################################################')
-        logger.warning('#                                                                                        #')
-        logger.warning('#          WARNING in recoverCurveShapes: Number of output filenames and number          #')
-        logger.warning('#                           of target filenames do not match.                            #')
-        logger.warning('#                                                                                        #')
-        logger.warning('##########################################################################################')
-        logger.warning('##########################################################################################\n')
+        logger.warning('######################################################################################')
+        logger.warning('######################################################################################')
+        logger.warning('#                                                                                    #')
+        logger.warning('#          WARNING in recoverCurveShapes: Number of output filenames do not          #')
+        logger.warning('#                    match with the number of target filenames.                      #')
+        logger.warning('#                                                                                    #')
+        logger.warning('######################################################################################')
+        logger.warning('######################################################################################\n')
         logger.info('Using the input target curve filenames as the output target filenames.')
         recovered_curve_filenames = []
     
     else:
-        logger.info('Output filenames detected, and number of output filenames and number of target filenames match.')
+        logger.info('Output filenames detected, and number of output filenames match with the number of target ' + \
+            'filenames.')
+        logger.info('Output filenames: %s\n', recovered_curve_filenames)
     
 
     ###################################################################### 
@@ -354,40 +364,40 @@ def start(configfile):
             plt.xlabel('Spectral axis', fontsize=16)  ## label X axis
             plt.ylabel('Counts or count rate', fontsize=16)  ## label Y axis
             
-            plt.plot(x_qty_target, y_qty_target, color='k', linestyle='-', linewidth=2, label='Target')  ## plot y 
-                                                                           ## quantity of the target on the Y axis
+            plt.plot(x_qty_target, y_qty_target, color='k', ls='-', lw=2, label='Target')  ## plot y quantity of the 
+                                                                                           ## target
             plt.fill_between(x_qty_target, y_qty_target - error_target, y_qty_target + error_target, color='gray', \
-                alpha=0.5)  ## plot error in y quantity of the target on the Y axis
+                alpha=0.5)  ## plot error in y quantity of the target
             
-            plt.plot(x_qty_reference, y_qty_reference, color='g', linestyle='-', linewidth=2, label='Reference')  
-                                                               ## plot y quantity of the reference on the Y axis
+            plt.plot(x_qty_reference, y_qty_reference, color='g', ls='-', lw=2, label='Reference')  ## plot y quantity
+                                                                                                   ## of the reference
             plt.fill_between(x_qty_reference, y_qty_reference - error_reference, y_qty_reference + error_reference, \
-                color='g', alpha=0.5)  ## plot error in y quantity of the reference on the Y axis
+                color='g', alpha=0.5)  ## plot error in y quantity of the reference
             
             plt.legend(loc='best', fontsize=16)  ## assign legend
             
-            plt.tick_params(axis='x', labelsize=16)  ## assign axes label size
-            plt.tick_params(axis='y', labelsize=16)
+            plt.minorticks_on()  ## show minor ticks on the plot
+            plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)  ## assign axes label size
 
             plt.show()
     
 
         # Parse the starting and ending x quantities of the curve windows to be recovered
         if not windows_x[i]:
-            # If windows not available, warn the user
-            logger.warning('######################################################################################')
-            logger.warning('######################################################################################')
-            logger.warning('#                                                                                    #')
-            logger.warning('#          WARNING in recoverCurveShapes: Windows to recover not available.          #')
-            logger.warning('#                                                                                    #')
-            logger.warning('######################################################################################')
-            logger.warning('######################################################################################\n')
+            # If windows not provided by the user, warn the user
+            logger.warning('#####################################################################################')
+            logger.warning('#####################################################################################')
+            logger.warning('#                                                                                   #')
+            logger.warning('#          WARNING in recoverCurveShapes: Windows to recover not detected.          #')
+            logger.warning('#                                                                                   #')
+            logger.warning('#####################################################################################')
+            logger.warning('#####################################################################################\n')
             logger.info('Skipping recovering curve shapes.\n')
             continue
 
         else:
-            # If windows available, parse the starting and ending values
-            logger.info('Windows to recover available.')
+            # If windows provided by the user, parse the starting and ending values
+            logger.info('Windows to recover detected.')
 
             logger.info('Parsing the starting and ending x quantities of the curve windows to be recovered.')
             windows_x_lb = np.array([x.split(':')[0] for x in windows_x[i]]).astype(float) ## stores lower bounds of 
@@ -563,21 +573,21 @@ def start(configfile):
                 plt.xlabel('Spectral axis', fontsize=16)
                 plt.ylabel('Counts or count rate', fontsize=16)
                 
-                plt.plot(x_qty_target, y_qty_target, color='k', linestyle='-', linewidth=2, label='Target')
+                plt.plot(x_qty_target, y_qty_target, color='k', ls='-', lw=2, label='Target')
                 plt.fill_between(x_qty_target, y_qty_target - error_target, y_qty_target + error_target, color='gray',\
                     alpha=0.5)
 
-                plt.plot(x_qty_reference, y_qty_reference, color='g', linestyle='-', linewidth=2, label='Reference')  
+                plt.plot(x_qty_reference, y_qty_reference, color='g', ls='-', lw=2, label='Reference')  
                 plt.fill_between(x_qty_reference, y_qty_reference - error_reference, \
                     y_qty_reference + error_reference, color='g', alpha=0.5)
                 
-                plt.plot(x_qty_window_target, y_qty_window_shape_target, color='r', linestyle='-', linewidth=2, \
-                    label='Target curve window')  ## plot shape of the target curve window on the Y axis
+                plt.plot(x_qty_window_target, y_qty_window_shape_target, color='r', ls='-', lw=2, \
+                    label='Target curve window')  ## plot shape of the target curve window
                 
                 plt.legend(loc='best', fontsize=16)
                 
-                plt.tick_params(axis='x', labelsize=16)
-                plt.tick_params(axis='y', labelsize=16)
+                plt.minorticks_on()
+                plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)
 
                 plt.show()
 
@@ -616,20 +626,20 @@ def start(configfile):
             plt.xlabel('Spectral axis', fontsize=16)
             plt.ylabel('Counts or count rate', fontsize=16)
             
-            plt.plot(x_qty_target, y_qty_target, color='k', linestyle='-', linewidth=2, label='Original target')
+            plt.plot(x_qty_target, y_qty_target, color='k', ls='-', lw=2, label='Original target')
             plt.fill_between(x_qty_target, y_qty_target - error_target, y_qty_target + error_target, color='gray', \
                 alpha=0.5)
             
-            plt.plot(x_qty_target, y_qty_target_rcov, color='purple', linestyle='-', linewidth=2, \
-                label='Recovered target')  ## plot target curve combined with recovered windows on the Y axis
+            plt.plot(x_qty_target, y_qty_target_rcov, color='purple', ls='-', lw=2, \
+                label='Recovered target')  ## plot target curve combined with recovered windows
             plt.fill_between(x_qty_target, y_qty_target_rcov - error_target_rcov, \
                 y_qty_target_rcov + error_target_rcov, color='purple', alpha=0.5)  ## plot error in the target curve
-                                                                    ## combined with recovered windows on the Y axis
+                                                                                  ## combined with recovered windows
             
             plt.legend(loc='best', fontsize=16)
             
-            plt.tick_params(axis='x', labelsize=16)
-            plt.tick_params(axis='y', labelsize=16)
+            plt.minorticks_on()
+            plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)
 
             plt.show()
          
@@ -641,7 +651,7 @@ def start(configfile):
             target_filename_rcov = data_path + '/' + recovered_curve_filenames[i]
 
         np.savetxt(target_filename_rcov, np.c_[x_qty_target, y_qty_target_rcov, error_target_rcov]); \
-            logger.info('Saved an ASCII file named %s.', target_filename_rcov)
+            logger.info('Saved an ASCII file named %s.\n', target_filename_rcov)
     
 
     logger.info('######################################################')

@@ -57,7 +57,6 @@ def start(configfile):
     """
     logger = log.getLogger('correctAffectedPixels.start')
 
-
     logger.info('##############################################################################################')
     logger.info('#                                                                                            #')
     logger.info('#          START -- Correct for cosmic ray affected or bad pixel regions in spectra          #')
@@ -89,8 +88,8 @@ def start(configfile):
     if not exclude_spectra:
         exclude_spectra = []  ## define an empty list
     else:
-        exclude_spectra = [int(x) for x in exclude_spectra.split(',')]  ## convert comma-separated string of ints into 
-                                                                        ## a list of ints
+        exclude_spectra = [int(x) for x in exclude_spectra.split(',')]  ## convert comma-separated string of spectra  
+                                                                        ## numbers into a list of ints
     median_width = config.getfloat('correctAffectedPixels','median_width')
     interpol_method = config.get('correctAffectedPixels','interpol_method')
     interpol_width = config.getfloat('correctAffectedPixels','interpol_width')
@@ -98,7 +97,7 @@ def start(configfile):
     output_spectra_filename_suffix = config.get('correctAffectedPixels','output_spectra_filename_suffix')
 
 
-    # Check if the path to the data directory is provided
+    # Check if the path to the data directory provided by the user
     if not data_path:
         logger.error('#############################################################################################')
         logger.error('#############################################################################################')
@@ -126,8 +125,8 @@ def start(configfile):
         raise SystemExit
     else:
         logger.info('Spectra detected.')
-        spectra_filenames = [x for x in spectra_filenames.split(',')]  ## convert comma-separated string of spectra 
-                                                                       ## filenames into a list of strings
+        spectra_filenames = [x for x in spectra_filenames.split(',')]  ## convert comma-separated string of filenames 
+                                                                       ## into a list of strings
         logger.info('Spectra: %s', spectra_filenames)
 
     # Check if spectra available in the data directory
@@ -155,7 +154,7 @@ def start(configfile):
         logger.info('All spectra avialable.')
 
     
-    # Check if parameters for correcting affected pixels provided by the user; if not, set to the defaults if available
+    # Check if parameters for correcting affected pixels provided by the user
     if not median_width:
         logger.warning('##########################################################################################')
         logger.warning('##########################################################################################')
@@ -214,7 +213,7 @@ def start(configfile):
         logger.info('Width for interpolation: %s', interpol_width)
     
 
-    # Check if output filename suffix provided by the user; if not, set to default if available
+    # Check if output filename suffix provided by the user
     if not output_spectra_filename_suffix:
         logger.warning('##############################################################################')
         logger.warning('##############################################################################')
@@ -224,11 +223,11 @@ def start(configfile):
         logger.warning('#                                                                            #')
         logger.warning('##############################################################################')
         logger.warning('##############################################################################\n')
-        logger.info('Setting the output filename suffix to the default "_p".')
+        logger.info('Setting the output filename suffix to the default "_p".\n')
         output_spectra_filename_suffix = '_p'
     else:
         logger.info('Output filename suffix detected.')
-        logger.info('Output filename suffix: %s', output_spectra_filename_suffix)
+        logger.info('Output filename suffix: %s\n', output_spectra_filename_suffix)
 
 
     #################################################################################### 
@@ -268,12 +267,12 @@ def start(configfile):
             plt.xlabel('Pixels', fontsize=16)  ## label X axis
             plt.ylabel('Counts or count rate', fontsize=16)  ## label Y axis
 
-            plt.plot(pixels, y_qty, color='k', marker='o')  ## plot y quantity on the Y axis
+            plt.plot(pixels, y_qty, color='k', marker='o')  ## plot y quantity
             plt.fill_between(pixels, y_qty - error, y_qty + error, color='gray', alpha=0.5)  ## plot error in y 
-                                                                                      ## quantity on the Y axis
+                                                                                             ## quantity
             
-            plt.tick_params(axis='x', labelsize=16)  ## assign axes label size
-            plt.tick_params(axis='y', labelsize=16)
+            plt.minorticks_on()
+            plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)  ## assign axes label size
 
             logger.info('Note down the affected or bad data pixel numbers to be replaced for the spectrum ' + \
                 '(displayed in a separate window).')
@@ -629,22 +628,21 @@ def start(configfile):
                     else:
                         ax.axvspan(windows_to_replace_lb[i], windows_to_replace_ub[i], facecolor='#F1CD46', alpha=0.5)
                 
-                ax.plot(pixels, y_qty, color='k', linestyle='-', linewidth=2, label='Raw')
+                ax.plot(pixels, y_qty, color='k', ls='-', lw=2, label='Raw')
                 ax.fill_between(pixels, y_qty - error, y_qty + error, color='gray', alpha=0.5)
                 
-                ax.plot(pixels, y_qty_pcorr_1, color='r', linestyle='-', linewidth=2, label='Interpolated')  
-                                                                      ## plot corrected y quantity on the Y axis
+                ax.plot(pixels, y_qty_pcorr_1, color='r', ls='-', lw=2, label='Interpolated')  ## plot corrected y 
+                                                                                               ## quantity
                 ax.fill_between(pixels, y_qty_pcorr_1 - error_pcorr_1, y_qty_pcorr_1 + error_pcorr_1, color='#FF7474',\
-                    alpha=0.5)  ## plot corrected error on the Y axis
+                    alpha=0.5)  ## plot corrected error
 
                 fig.legend(bbox_to_anchor=(0.5, 0.4, 0.5, 0.5), fontsize=16)  ## assign legend
                 
-                fig.subplots_adjust(left=0.08, right=0.76)  ## adjust plot position
-                fig.subplots_adjust(bottom=0.1, top=0.90)
+                ax.minorticks_on()
+                ax.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)
 
-                ax.tick_params(axis='x', labelsize=16)
-                ax.tick_params(axis='y', labelsize=16)
-
+                fig.subplots_adjust(left=0.08, right=0.76, bottom=0.1, top=0.90)  ## adjust plot position
+                
                 plt.show()
             
             else:
@@ -696,26 +694,24 @@ def start(configfile):
                     else:
                         ax.axvspan(windows_to_replace_lb[i], windows_to_replace_ub[i], facecolor='#F1CD46', alpha=0.5)
                 
-                ax.plot(pixels, y_qty, color='k', linestyle='-', linewidth=2, label='Raw')
+                ax.plot(pixels, y_qty, color='k', ls='-', lw=2, label='Raw')
                 ax.fill_between(pixels, y_qty - error, y_qty + error, color='gray', alpha=0.5)
                 
-                ax.plot(pixels, y_qty_pcorr_1, color='r', linestyle='-', linewidth=2, label='Interpolated')
+                ax.plot(pixels, y_qty_pcorr_1, color='r', ls='-', lw=2, label='Interpolated')
                 ax.fill_between(pixels, y_qty_pcorr_1 - error_pcorr_1, y_qty_pcorr_1 + error_pcorr_1, color='#FF7474',\
                     alpha=0.5)
 
-                ax.plot(pixels, y_qty_pcorr_2, color='#0027FF', linestyle='--', linewidth=2, label='Simulated')  
-                                                 ## plot corrected y quantity with simulated data on the Y axis
+                ax.plot(pixels, y_qty_pcorr_2, color='#0027FF', ls='--', lw=2, label='Simulated')  ## plot corrected y 
+                                                                                       ## quantity with simulated data
                 ax.fill_between(pixels, np.array(y_qty_pcorr_2) - np.array(error_pcorr_2), np.array(y_qty_pcorr_2) + \
-                    np.array(error_pcorr_2), color='#778BFF', alpha=0.5)  ## plot corrected error with simulated data 
-                                                                          ## on the Y axis
+                    np.array(error_pcorr_2), color='#778BFF', alpha=0.5)  ## plot corrected error with simulated data
 
                 fig.legend(bbox_to_anchor=(0.5, 0.4, 0.5, 0.5), fontsize=16)
                 
-                fig.subplots_adjust(left=0.08, right=0.76)
-                fig.subplots_adjust(bottom=0.1, top=0.90)
-
-                ax.tick_params(axis='x', labelsize=16)
-                ax.tick_params(axis='y', labelsize=16)
+                ax.minorticks_on()
+                ax.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)
+                
+                fig.subplots_adjust(left=0.08, right=0.76, bottom=0.1, top=0.90)
 
                 plt.show()
             

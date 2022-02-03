@@ -126,7 +126,7 @@ def start(configfile):
     slitloss_model_results_filename = config.get('correctSlitlosses','slitloss_model_results_filename')
 
 
-    # Check if the path to the data directory is provided
+    # Check if the path to the data directory provided by the user
     if not data_path:
         logger.error('#########################################################################################')
         logger.error('#########################################################################################')
@@ -156,8 +156,8 @@ def start(configfile):
         raise SystemExit
     else:
         logger.info('Target spectra detected.')
-        target_filenames = [x for x in target_filenames.split(',')]  ## convert comma-separated string of strings into
-                                                                     ## a list of strings
+        target_filenames = [x for x in target_filenames.split(',')]  ## convert comma-separated string of filenames
+                                                                     ## into a list of strings
         logger.info('Target spectra: %s', target_filenames)
     
     # Reference spectra
@@ -173,7 +173,7 @@ def start(configfile):
         raise SystemExit
     else:
         logger.info('Reference spectra detected.')
-        target_filenames = [x for x in reference_filenames.split(',')]  ## convert comma-separated string of strings
+        target_filenames = [x for x in reference_filenames.split(',')]  ## convert comma-separated string of filenames
                                                                         ## into a list of strings
         logger.info('Reference spectra: %s', reference_filenames)
 
@@ -272,7 +272,7 @@ def start(configfile):
         pass
 
     
-    # Check if order of spline function provided by the user; if not, set to default if available
+    # Check if order of spline function provided by the user
     if not spline_order:
         logger.warning('################################################################################')
         logger.warning('################################################################################')
@@ -289,7 +289,7 @@ def start(configfile):
         logger.info('Order of the spline function: %s', spline_order)
 
     
-    # Check if output filename suffix provided by the user; if not, set to default if available
+    # Check if output filename suffix provided by the user
     if not output_spectra_filename_suffix:
         logger.warning('########################################################################################')
         logger.warning('########################################################################################')
@@ -305,7 +305,7 @@ def start(configfile):
         logger.info('Output filename suffix: %s', output_spectra_filename_suffix)
 
     
-    # Check if results filename provided by the user; if not, set to default if available
+    # Check if results filename provided by the user
     if not slitloss_model_results_filename:
         logger.warning('##################################################################################')
         logger.warning('##################################################################################')
@@ -322,7 +322,7 @@ def start(configfile):
     
     
     # Define required variables
-    logger.info('Defining required variables.')
+    logger.info('Defining required variables.\n')
     spectral_ratios_model_filenames = []  ## stores filenames of the spectral ratios model for slilosses
     spectral_ratios_model_rms = []  ## stores RMS of the spline model fit to spectral ratios
     spectral_ratios_model_chi2_reduced = []  ## stores reduced chi-squared statistic of the spline model fit to 
@@ -357,7 +357,7 @@ def start(configfile):
         error_reference = reference['col3']  ## reference error in y quantity
 
 
-        y_qty_zero = np.zeros((len(x_qty_target)))  ## define the no flux line
+        y_qty_zero = np.zeros((len(x_qty_target)))  ## define zero flux line
     
         
         if interactive:        
@@ -368,23 +368,23 @@ def start(configfile):
             plt.xlabel('Spectral axis', fontsize=16)  ## label X axis
             plt.ylabel('Counts or count rate', fontsize=16)  ## label Y axis
             
-            plt.plot(x_qty_target, y_qty_target, color='k', linestyle='-', linewidth=2, label='Target')  ## plot y 
-                                                                           ## quantity of the target on the Y axis
+            plt.plot(x_qty_target, y_qty_target, color='k', ls='-', lw=2, label='Target')  ## plot y quantity of the
+                                                                                           ## target
             plt.fill_between(x_qty_target, y_qty_target - error_target, y_qty_target + error_target, color='gray', \
-                alpha=0.5)  ## plot error in y quantity of the target on the Y axis
+                alpha=0.5)  ## plot error in y quantity of the target
 
-            plt.plot(x_qty_reference, y_qty_reference, color='g', linestyle='-', linewidth=2, label='Reference')  
-                                                               ## plot y quantity of the reference on the Y axis
+            plt.plot(x_qty_reference, y_qty_reference, color='g', ls='-', lw=2, label='Reference')  ## plot y quantity 
+                                                                                                   ## of the reference
             plt.fill_between(x_qty_reference, y_qty_reference - error_reference, y_qty_reference + error_reference, \
-                color='g', alpha=0.5)  ## plot error in y quantity of the reference on the Y axis
+                color='g', alpha=0.5)  ## plot error in y quantity of the reference
 
-            plt.plot(x_qty_target, y_qty_zero, color='k', linestyle='--', linewidth=2, label='No flux line')  
-                                                    ## plot the line where no flux is received on the Y axis
+            plt.plot(x_qty_target, y_qty_zero, color='k', ls='--', lw=2, label='Zero flux line')  ## plot zero flux 
+                                                                                                  ## line
             
             plt.legend(loc='best', fontsize=16)  ## assign legend
             
-            plt.tick_params(axis='x', labelsize=16)  ## assign axes label size
-            plt.tick_params(axis='y', labelsize=16)
+            plt.minorticks_on()  ## show minor ticks on the plot
+            plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)  ## assign axes label size
 
             plt.show()
         
@@ -448,17 +448,17 @@ def start(configfile):
             plt.xlabel('Spectral axis', fontsize=16)
             
             plt.plot(x_qty_spectral_ratios, y_qty_spectral_ratios, color='k', marker='o', \
-                label='Target/reference spectra')  ## plot spectral ratios on the Y axis
+                label='Target/reference spectra')  ## plot spectral ratios
             plt.fill_between(x_qty_spectral_ratios, np.array(y_qty_spectral_ratios) - np.array(error_spectral_ratios),\
                 np.array(y_qty_spectral_ratios) + np.array(error_spectral_ratios), color='gray', alpha=0.5)  ## plot 
-                                                                           ## error in spectral ratios on the Y axis
+                                                                                         ## error in spectral ratios
 
-            plt.plot(x_qty_target, y_qty_zero, color='k', linestyle='--', linewidth=2, label='No flux line')  
+            plt.plot(x_qty_target, y_qty_zero, color='k', ls='--', lw=2, label='Zero flux line')  
 
             plt.legend(loc='best', fontsize=16)
             
-            plt.tick_params(axis='x', labelsize=16)
-            plt.tick_params(axis='y', labelsize=16)
+            plt.minorticks_on()
+            plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)
 
             plt.show()
         
@@ -540,15 +540,15 @@ def start(configfile):
             plt.fill_between(x_qty_spectral_ratios, np.array(y_qty_spectral_ratios) - np.array(error_spectral_ratios),\
                 np.array(y_qty_spectral_ratios) + np.array(error_spectral_ratios), color='gray', alpha=0.5)
             
-            plt.plot(x_qty_spectral_ratios_model, y_qty_spectral_ratios_model, color='r', linestyle='-', linewidth=2, \
-                label='Spline fit to ratios')  ## plot the spline fit to spectral ratios on the Y axis
+            plt.plot(x_qty_spectral_ratios_model, y_qty_spectral_ratios_model, color='r', ls='-', lw=2, \
+                label='Spline fit to ratios')  ## plot the spline fit to spectral ratios
 
-            plt.plot(x_qty_target, y_qty_zero, color='k', linestyle='--', linewidth=2, label='Zero flux')
+            plt.plot(x_qty_target, y_qty_zero, color='k', ls='--', lw=2, label='Zero flux line')
 
             plt.legend(loc='best', fontsize=16)
             
-            plt.tick_params(axis='x', labelsize=16)
-            plt.tick_params(axis='y', labelsize=16)
+            plt.minorticks_on()
+            plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)
 
             plt.show()
         
@@ -572,23 +572,23 @@ def start(configfile):
             plt.xlabel('Spectral axis', fontsize=16)
             plt.ylabel('Counts or count rate', fontsize=16)
             
-            plt.plot(x_qty_target, y_qty_target, color='k', linestyle='-', linewidth=2, label='Original target')
+            plt.plot(x_qty_target, y_qty_target, color='k', ls='-', lw=2, label='Original target')
             plt.fill_between(x_qty_target, y_qty_target - error_target, y_qty_target + error_target, color='gray', \
                 alpha=0.5)
 
-            plt.plot(x_qty_reference, y_qty_reference, color='g', linestyle='-', linewidth=2, label='Reference')
+            plt.plot(x_qty_reference, y_qty_reference, color='g', ls='-', lw=2, label='Reference')
             plt.fill_between(x_qty_reference, y_qty_reference - error_reference, y_qty_reference + error_reference, \
                 color='g', alpha=0.5)
             
-            plt.plot(x_qty_target, y_qty_target_lcorr, color='purple', linestyle='-', linewidth=2, \
-                label='Slitloss-corrected target')  ## plot slitloss-corrected y quantities of the target on the Y axis
+            plt.plot(x_qty_target, y_qty_target_lcorr, color='purple', ls='-', lw=2, label='Slitloss-corrected target')  
+                                                                  ## plot slitloss-corrected y quantities of the target
             plt.fill_between(x_qty_target, y_qty_target_lcorr - np.array(error_target_lcorr), y_qty_target_lcorr + \
                 np.array(error_target_lcorr), color='purple', alpha=0.5)
             
             plt.legend(loc='best', fontsize=16)
             
-            plt.tick_params(axis='x', labelsize=16)
-            plt.tick_params(axis='y', labelsize=16)
+            plt.minorticks_on()
+            plt.tick_params(axis='both', which='both', top=True, right=True, labelsize=16)
 
             plt.show()
 

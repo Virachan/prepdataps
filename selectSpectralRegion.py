@@ -43,7 +43,6 @@ def start(configfile):
     """
     logger = log.getLogger('selectSpectralRegion.start')
 
-
     logger.info('#############################################################')
     logger.info('#                                                           #')
     logger.info('#          START -- Select desired spectral region          #')
@@ -81,7 +80,7 @@ def start(configfile):
     output_spectra_filename_suffix = config.get('selectSpectralRegion','output_spectra_filename_suffix')
 
 
-    # Check if the path to the data directory is provided
+    # Check if the path to the data directory provided by the user
     if not data_path:
         logger.error('############################################################################################')
         logger.error('############################################################################################')
@@ -109,8 +108,8 @@ def start(configfile):
         raise SystemExit
     else:
         logger.info('Spectra detected.')
-        spectra_filenames = [x for x in spectra_filenames.split(',')]  ## convert comma-separated string of spectra 
-                                                                       ## filenames into a list of strings
+        spectra_filenames = [x for x in spectra_filenames.split(',')]  ## convert comma-separated string of filenames 
+                                                                       ## into a list of strings
         logger.info('Spectra: %s', spectra_filenames)
     
     # Check if spectra available in the data directory
@@ -138,7 +137,7 @@ def start(configfile):
         logger.info('All spectra avialable.')
 
 
-    # Check if input x-axis units provided
+    # Check if input x-axis units provided by the user
     if not input_x:
         logger.error('#####################################################################################')
         logger.error('#####################################################################################')
@@ -151,7 +150,7 @@ def start(configfile):
         raise SystemExit
     
     elif (input_x == 'w') or (input_x == 'p'):
-        logger.info('Input x-axis units specified by the user.')
+        logger.info('Input x-axis units detected.')
         logger.info('X axis units: %s', input_x)
     
     else:
@@ -216,7 +215,7 @@ def start(configfile):
             if spectra_frame == 'observed':
                 logger.info('Spectra detected in observed frame.')
                 # No conversion between frames required for wavelength bounds
-                logger.info('No conversion between frames required for wavelength bounds.\n')
+                logger.info('No conversion between frames required for wavelength bounds.')
 
             elif spectra_frame == 'restframe':
                 logger.info('Spectra detected in restframe.')
@@ -241,7 +240,7 @@ def start(configfile):
                                                                         ## into a list of floats
                     logger.info('Object redshifts: %s', object_z)
                 
-                # Check if number of z values and number of spectra match
+                # Check if number of z values match with the number of spectra
                 if len(object_z) < len(spectra_filenames):
                     difference = len(spectra_filenames) - len(object_z)
                     logger.error('################################################################################')
@@ -267,7 +266,7 @@ def start(configfile):
                     raise SystemExit
 
                 else:
-                    logger.info('Number of redshifts and number of spectra match.\n')
+                    logger.info('Number of redshifts match with the number of spectra.')
 
 
             else:
@@ -283,7 +282,7 @@ def start(configfile):
                 spectra_frame = 'restframe'
                 
                 # Notify the user that the wavelength bounds will be converted from observed to restframe
-                logger.info('Wavelength bounds in observed frame will be converted to restframe.\n')
+                logger.info('Wavelength bounds in observed frame will be converted to restframe.')
 
                 # Check if z values provided by the user
                 if not object_z:
@@ -302,7 +301,7 @@ def start(configfile):
                                                                         ## into a list of floats
                     logger.info('Object redshifts: %s', object_z)
                 
-                # Check if number of z values and number of spectra match
+                # Check if number of z values match with the number of spectra
                 if len(object_z) < len(spectra_filenames):
                     difference = len(spectra_filenames) - len(object_z)
                     logger.error('################################################################################')
@@ -328,7 +327,7 @@ def start(configfile):
                     raise SystemExit
 
                 else:
-                    logger.info('Number of redshifts and number of spectra match.\n')
+                    logger.info('Number of redshifts match with number of spectra.')
         
         elif x_bounds_frame == 'restframe':
             logger.info('Wavelength bounds to be applied for desired spectral region detected in restframe.')
@@ -356,7 +355,7 @@ def start(configfile):
                                                                         ## into a list of floats
                     logger.info('Object redshifts: %s', object_z)
                 
-                # Check if number of z values and number of spectra match
+                # Check if number of z values match with the number of spectra
                 if len(object_z) < len(spectra_filenames):
                     difference = len(spectra_filenames) - len(object_z)
                     logger.error('################################################################################')
@@ -382,12 +381,12 @@ def start(configfile):
                     raise SystemExit
 
                 else:
-                    logger.info('Number of redshifts and number of spectra match.\n')
+                    logger.info('Number of redshifts mattch with the number of spectra.')
             
             elif spectra_frame == 'restframe':
                 logger.info('Spectra detected in restframe.')
                 # No conversion between frames required for wavelength bounds
-                logger.info('No conversion between frames required for wavelength bounds.\n')
+                logger.info('No conversion between frames required for wavelength bounds.')
 
             else:
                 logger.warning('###################################################################################')
@@ -401,7 +400,7 @@ def start(configfile):
                 logger.info('Setting spectra frame to the default "restframe".')
                 spectra_frame = 'restframe'
                 # No conversion between frames required for wavelength bounds
-                logger.info('No conversion between frames required for wavelength bounds.\n')
+                logger.info('No conversion between frames required for wavelength bounds.')
 
         else:
             logger.warning('#######################################################################################')
@@ -438,7 +437,7 @@ def start(configfile):
                                                                         ## into a list of floats
                     logger.info('Object redshifts: %s', object_z)
                 
-                # Check if number of z values and number of spectra match
+                # Check if number of z values match with the number of spectra
                 if len(object_z) < len(spectra_filenames):
                     difference = len(spectra_filenames) - len(object_z)
                     logger.error('################################################################################')
@@ -464,12 +463,12 @@ def start(configfile):
                     raise SystemExit
 
                 else:
-                    logger.info('Number of redshifts and number of spectra match.\n')
+                    logger.info('Number of redshifts match with the number of spectra.')
             
             elif spectra_frame == 'restframe':
                 logger.info('Spectra detected in restframe.')
                 # No conversion between frames required for wavelength bounds
-                logger.info('No conversion between frames required for wavelength bounds.\n')
+                logger.info('No conversion between frames required for wavelength bounds.')
 
             else:
                 logger.warning('###################################################################################')
@@ -483,13 +482,13 @@ def start(configfile):
                 logger.info('Setting spectra frame to the default "restframe".')
                 spectra_frame = 'restframe'
                 # No conversion between frames required for wavelength bounds
-                logger.info('No conversion between frames required for wavelength bounds.\n')
+                logger.info('No conversion between frames required for wavelength bounds.')
     
     else:
         pass
     
 
-    # Check if output filename suffix provided by the user; if not, set to default if available
+    # Check if output filename suffix provided by the user
     if not output_spectra_filename_suffix:
         logger.warning('###########################################################################################')
         logger.warning('###########################################################################################')
@@ -498,11 +497,11 @@ def start(configfile):
         logger.warning('#                                                                                         #')
         logger.warning('###########################################################################################')
         logger.warning('###########################################################################################\n')
-        logger.info('Setting the output filename suffix to the default "_s".')
+        logger.info('Setting the output filename suffix to the default "_s".\n')
         output_spectra_filename_suffix = '_s'
     else:
         logger.info('Output filename suffix detected.')
-        logger.info('Output filename suffix: %s', output_spectra_filename_suffix)
+        logger.info('Output filename suffix: %s\n', output_spectra_filename_suffix)
 
 
     ######################################################################## 
