@@ -2,20 +2,21 @@
 
 &nbsp;  
 This repository provides the `Python` scripts developed to perform corrections required before modeling one-dimensional spectra spectra with `PrepSpec` (a spectral analysis software; see `PrepSpec` User Manual in this repository).  Because `PrepSpec` is not designed to handle spikes in data (e.g., due to cosmic rays) and gap regions (e.g., detector gaps in the Mrk 142 example spectra taken with the Gemini North Telescope), we need to remove such features prior to processing the spectra through `PrepSpec`.  
+&nbsp;  
 
 The four scripts in this repository are described below.  
-
-$selectSpectralRegion.py:$
-> Selects a region of the spectra specified by shorter (blue) and longer (red) wavelength bounds or lower and upper pixel bounds.  
-
-$recoverCurveShapes.py:$
-> Recovers the region of the spectra specified by blue and red wavelength bounds or lower and upper pixel bounds by estimating the shape of reference spectra.  
-
+&nbsp;  
 $correctAffectedPixels.py:$
 > Corrects undesirable artefacts in pixel regions specified by the user for each spectrum by either replacing the affected pixels with median values or linearly interpolating in the affected regions and replacing interpolated values with simulated data assuming Gaussian distribution of errors.  This script runs interactively with user inputs required for all spectra.  
 
 $correctSlitlosses.py:$
 > Corrects flux losses in narrow-slit spectra using wide-slit reference spectra taken on the same night.  This script requires the the Image Reduction and Analysis Facility with Python wrapper (`PyRAF`) environment for execution of the `curfit` task non-interactively.  The interactive mode of `curfit` may not work on all systems as is therefore turned off.  
+
+$recoverCurveShapes.py:$
+> Recovers the region of the spectra specified by blue and red wavelength bounds or lower and upper pixel bounds by estimating the shape of reference spectra.  
+
+$selectSpectralRegion.py:$
+> Selects a region of the spectra specified by shorter (blue) and longer (red) wavelength bounds or lower and upper pixel bounds.  
 
 &nbsp;  
 ### The Configuration File Interface:  
