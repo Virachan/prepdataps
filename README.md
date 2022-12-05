@@ -19,7 +19,7 @@ The four scripts in this repository are described below.
 
 &nbsp;  
 ### The Configuration File Interface:  
-All scripts read their inputs from the configuration file *prepdataps.cfg*, which is a text file containing input parameters organized in separate sections for each of the scripts.  The user can simply modify parameters in the configuration file to execute the scripts for different data sets without having to interact with the code in the scripts.  The default parameter settings in the configuration file are applicable for the example data set of Mrk 142 Gemini spectra used in this work.  The example spectra are available in the folder *example\_spectra* in the remote repository.  Inputs and outputs for all scripts are described in the repository.  
+All scripts read their inputs from the configuration file *prepdataps.cfg*, which is a text file containing input parameters organized in separate sections for each of the scripts.  The user can simply modify parameters in the configuration file to execute the scripts for different data sets without having to interact with the code in the scripts.  The default parameter settings in the configuration file are applicable for the example data set of Mrk 142 long-slit spectra taken with the Gemini North Telescope (refer to the *`PrepSpec` User Manual* for further details).  The example spectra will be made available at the time of the publication of the corresponding paper (Khatu et al. 2022, submitted).  Inputs and outputs for all scripts are described in the repository.  
 &nbsp;  
 ### Dependencies:
 Install the following dependencies before downloading and using the scripts.  
@@ -38,10 +38,10 @@ To use the scripts with the example spectra, simply download the repository and 
 &nbsp;  
 ### Citations:  
 Use the following citation for *scripts* and *`PrepSpec` User Manual*.
-> Khatu et al. (2022), in prep.  
+> Khatu, V. C., Gallagher, S. C., Horne, K., et al. 2022, in prep.  
 
 Use the following citation for *Mrk 142 example data set*.
-> Khatu et al. (2022), submitted (Manuscript #: AAS43725)
+> Khatu, V. C., Gallagher, S. C., Horne, K., et al. 2022, ApJ, submitted [Manuscript #: AAS43725]
 
 &nbsp;  
 ### Questions?
