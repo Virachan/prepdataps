@@ -5,7 +5,7 @@ This repository provides the `Python` scripts developed to perform corrections r
 
 The four scripts in this repository are described below.  
 
-$selectSpectralRegion.py:$  
+$selectSpectralRegion.py:$
 > Selects a region of the spectra specified by shorter (blue) and longer (red) wavelength bounds or lower and upper pixel bounds.  
 
 $recoverCurveShapes.py:$
