@@ -4,7 +4,6 @@
 This repository provides the `Python` scripts developed to perform corrections required before modeling one-dimensional spectra spectra with `PrepSpec` (a spectral analysis software; see `PrepSpec` User Manual in this repository).  Because `PrepSpec` is not designed to handle spikes in data (e.g., due to cosmic rays) and gap regions (e.g., detector gaps in the Mrk 142 example spectra taken with the Gemini North Telescope), we need to remove such features prior to processing the spectra through `PrepSpec`.  
 
 The four scripts in this repository are described below.  
-&nbsp;  
 
 $selectSpectralRegion.py:$  
 > Selects a region of the spectra specified by shorter (blue) and longer (red) wavelength bounds or lower and upper pixel bounds.  
