@@ -38,10 +38,10 @@ To use the scripts with the example spectra, simply download the repository and 
 &nbsp;  
 ### Citations:  
 Use the following citation for *scripts* and *`PrepSpec` User Manual*.
-> Khatu, V. C., Gallagher, S. C., Horne, K., et al. 2022, *Publications of the Astronomical Society of the Pacific*, 135, 044504, https://iopscience.iop.org/article/10.1088/1538-3873/acc973.  
+> Khatu, V. C., Gallagher, S. C., Horne, K., et al. 2023, *Publications of the Astronomical Society of the Pacific*, 135, 044504, https://iopscience.iop.org/article/10.1088/1538-3873/acc973.  
 
 Use the following citation for *Mrk 142 example data set*.
-> Khatu, V. C., Gallagher, S. C., Horne, K., et al. 2022, The Astrophysical Journal, 958, 127, https://iopscience.iop.org/article/10.3847/1538-4357/acfb72.
+> Khatu, V. C., Gallagher, S. C., Horne, K., et al. 2023, The Astrophysical Journal, 958, 127, https://iopscience.iop.org/article/10.3847/1538-4357/acfb72.
 
 &nbsp;  
 ### Questions?
